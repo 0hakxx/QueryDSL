@@ -1,8 +1,9 @@
 spring:
   datasource:
-    url: jdbc:tcp://localhost/~/querydsl
+    url: jdbc:h2:tcp://localhost/~/querydsl
     username: sa
     password:
+    driver-class-name: org.h2.Driver
 
   jpa:
     hibernate:
@@ -12,19 +13,7 @@ spring:
         #        show_sql: true
         format_sql: true
 
-  application:
-    name: querydsl
-
-server:
-  port: 7070
-
 logging:
   level:
     org.hibernate.SQL: debug
-    #    org.hibernate.type: trace
-
-decorator:
-  datasource:
-    p6spy:
-      enable-logging: true
-
+#    org.hibernate.type: trace

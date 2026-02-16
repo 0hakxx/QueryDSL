@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: jdbc:tcp://localhost/~/querydsl
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        #        show_sql: true
+        format_sql: true
+
+  application:
+    name: querydsl
+
+server:
+  port: 7070
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    #    org.hibernate.type: trace
+
+decorator:
+  datasource:
+    p6spy:
+      enable-logging: true
+

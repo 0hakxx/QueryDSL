@@ -4,6 +4,8 @@ spring:
     username: sa
     password:
     driver-class-name: org.h2.Driver
+  profiles:
+    active: local
 
   jpa:
     hibernate:
@@ -13,6 +15,9 @@ spring:
         #        show_sql: true
         format_sql: true
         spring.jpa.properties.hibernate.use_sql_comments: true
+
+server:
+  port: 7070
 
 logging:
   level:

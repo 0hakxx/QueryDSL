@@ -20,14 +20,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Commit;
 import org.springframework.transaction.annotation.Transactional;
-import study.querydsl.dto.MemberDto;
-import study.querydsl.dto.MemberDtoNoDefault;
-import study.querydsl.dto.QMemberDto;
-import study.querydsl.dto.UserDto;
+import study.querydsl.dto.*;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
 import study.querydsl.entity.QTeam;
 import study.querydsl.entity.Team;
+import study.querydsl.repository.MemberJpaRepository;
 
 import java.util.List;
 
@@ -482,7 +480,6 @@ class QuerydslBasicTest {
      * <p>벌크 연산은 영속성 컨텍스트를 무시하고 DB에 직접 쿼리를 실행합니다.</p>
      */
     @Test
-    @Commit
     public void bulkUpdate() {
         long count = queryFactory.update(member)
                 .set(member.username, "비회원")
@@ -500,5 +497,6 @@ class QuerydslBasicTest {
                 .fetchFirst();
         System.out.println("result = " + result);
     }
+
 
 }

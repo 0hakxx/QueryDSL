@@ -1,7 +1,10 @@
 package study.querydsl;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
@@ -15,7 +18,12 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Commit;
 import org.springframework.transaction.annotation.Transactional;
+import study.querydsl.dto.MemberDto;
+import study.querydsl.dto.MemberDtoNoDefault;
+import study.querydsl.dto.QMemberDto;
+import study.querydsl.dto.UserDto;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
 import study.querydsl.entity.QTeam;
@@ -273,4 +281,224 @@ class QuerydslBasicTest {
             System.out.println("s = " + s);
         }
     }
+    @Test
+    // 프로젝션 대상 하나일 경우
+    public void simpleProjection() {
+        List<String> result = queryFactory.select(member.username)
+                .from(member)
+                .fetch();
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+    // 프로젝션 대상이 둘 이상일 경우
+    @Test
+    public void tupleProjection() {
+        List<Tuple> result = queryFactory.select(member.username, member.age)
+                .from(member)
+                .fetch();
+        for (Tuple tuple : result) {
+            String username = tuple.get(member.username);
+            Integer age = tuple.get(member.age);
+            System.out.println("username = " + username + ", age = " + age);
+        }
+    }
+    //Member DTO 변환
+    @Test
+    public void findDtoByJPQL() {
+        List<MemberDto> result = em.createQuery("select new study.querydsl.dto.MemberDto(m.username, m.age) from Member m", MemberDto.class)
+                .getResultList();
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+    // DTO로 변환 - Setter
+    @Test
+    public void findDtoBySetter() {
+        List<MemberDto> result = queryFactory.select(Projections.bean(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+    // DTO로 변환 - Field
+    @Test
+    public void findDtoByField() {
+        List<MemberDto> result = queryFactory.select(Projections.fields(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+
+    /**
+     * 기본 생성자 없을 때 테스트
+     * - Setter 방식: 기본 생성자 필요 (없으면 에러)
+     * - Field 방식: 기본 생성자 필요 (없으면 에러)
+     */
+    @Test
+    public void findDtoNoDefaultConstructor_Setter() {
+        // 기본 생성자가 없으면 실행 시 에러 발생
+        // Exception: No default constructor for entity 'study.querydsl.dto.MemberDtoNoDefault'
+        try {
+            List<MemberDtoNoDefault> result = queryFactory
+                    .select(Projections.bean(MemberDtoNoDefault.class, member.username, member.age))
+                    .from(member)
+                    .fetch();
+            System.out.println("Setter 방식 성공 (기본 생성자 없음)");
+        } catch (Exception e) {
+            System.out.println("❌ Setter 방식 실패: " + e.getMessage());
+            System.out.println("이유: 기본 생성자가 없어서 객체 생성 불가");
+        }
+    }
+
+    @Test
+    public void findDtoNoDefaultConstructor_Field() {
+        // 기본 생성자가 없으면 실행 시 에러 발생
+        // Exception: No default constructor for entity 'study.querydsl.dto.MemberDtoNoDefault'
+        try {
+            List<MemberDtoNoDefault> result = queryFactory
+                    .select(Projections.fields(MemberDtoNoDefault.class, member.username, member.age))
+                    .from(member)
+                    .fetch();
+            System.out.println("Field 방식 성공 (기본 생성자 없음)");
+        } catch (Exception e) {
+            System.out.println("❌ Field 방식 실패: " + e.getMessage());
+            System.out.println("이유: 기본 생성자가 없어서 객체 생성 불가");
+        }
+    }
+
+    /**
+     * 정리:
+     * 1. Projections.bean() - Setter 방식
+     *    - 기본 생성자로 객체 생성 → Setter 메서드로 값 주입
+     *    - 기본 생성자 필수!
+     *    - Setter 메서드 필수!
+     *
+     * 2. Projections.fields() - Field 방식
+     *    - 기본 생성자로 객체 생성 → Reflection으로 필드에 직접 값 주입
+     *    - 기본 생성자 필수!
+     *    - Setter 메서드 불필요!
+     *
+     * 3. Projections.constructor() - 생성자 방식
+     *    - 파라미터 생성자로 직접 객체 생성
+     *    - 기본 생성자 불필요!
+     */
+    @Test
+    public void findDtoByConstructor_NoDefaultNeeded() {
+                // 생성자 방식은 기본 생성자 없어도 동작!
+                List<MemberDtoNoDefault> result = queryFactory
+                        .select(Projections.constructor(MemberDtoNoDefault.class, member.username, member.age))
+                        .from(member)
+                        .fetch();
+                for (MemberDtoNoDefault dto : result) {
+                    System.out.println("✅ 생성자 방식 성공: " + dto);
+        }
+    }
+
+    @Test
+    public void findUserDtoByField() {
+        QMember memberSub = new QMember("memberSub");
+        List<UserDto> result = queryFactory.select(Projections.fields(UserDto.class,
+                        member.username.as("name"), // 별칭 매핑
+                        Expressions.as(
+                                JPAExpressions
+                                        .select(memberSub.age.max())
+                                        .from(memberSub), "age")
+                )
+                ).from(member)
+                .fetch();
+        for (UserDto userDto : result) {
+            System.out.println("userDto = " + userDto);
+        }
+    }
+    // QueuryProjections.constructor() - 생성자 방식
+    @Test
+    public void findDtoByConstructor() {
+        List<MemberDto> results = queryFactory.select(new QMemberDto(member.username, member.age))
+                .from(member)
+                .fetch();
+    }
+    // 동적 쿼리 - BooleanBuilder
+    @Test
+    public void dynamicQuery_BooleanBuilder() {
+        String usernameParam = "member1";
+        Integer ageParam = null;
+
+        List<Member> result = searchMember1(usernameParam, ageParam);
+        Assertions.assertThat(result.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember1(String usernameParam, Integer ageParam) {
+        BooleanBuilder booleanBuilder = new BooleanBuilder();
+        if(usernameParam != null) {
+            booleanBuilder.and(member.username.eq(usernameParam));
+        }
+        if(ageParam != null) {
+            booleanBuilder.and(member.age.eq(ageParam));
+        }
+
+
+        List<Member> results = queryFactory.selectFrom(member)
+                .where(booleanBuilder)
+                .fetch();
+        return results;
+    }
+    // 다중 where 쿼리문
+    @Test
+    public void dynamicQuery_WhereParam() {
+        String usernameParam = "member1";
+        Integer ageParam = null;
+
+        List<Member> result = searchMember2(usernameParam, ageParam);
+        Assertions.assertThat(result.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember2(String usernameParam, Integer ageParam) {
+        return queryFactory.selectFrom(member)
+                .where(usernameEq(usernameParam), ageEq(ageParam))
+                .fetch();
+    }
+
+    private BooleanExpression ageEq(Integer ageParam) {
+        if(ageParam != null) {
+            return member.age.eq(ageParam);
+        }
+        else return null;
+    }
+
+    private BooleanExpression usernameEq(String usernameParam) {
+        if(usernameParam != null) {
+            return member.username.eq(usernameParam);
+        }
+        else return null;
+    }
+
+    /**
+     * 벌크 연산 - 정상 케이스
+     *
+     * <p>벌크 연산은 영속성 컨텍스트를 무시하고 DB에 직접 쿼리를 실행합니다.</p>
+     */
+    @Test
+    @Commit
+    public void bulkUpdate() {
+        long count = queryFactory.update(member)
+                .set(member.username, "비회원")
+                .where(member.age.lt(28))
+                .execute();
+        Assertions.assertThat(count).isEqualTo(2);
+    }
+    //function Member -> m 으로 변경
+    @Test
+    public void function() {
+        String result = queryFactory .
+                select(Expressions.stringTemplate("function('replace', {0}, {1}, {2})",
+                        member.username, "member", "M"))
+                .from(member)
+                .fetchFirst();
+        System.out.println("result = " + result);
+    }
+
 }

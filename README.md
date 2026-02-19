@@ -108,7 +108,7 @@ QueryDSL은 이를 다음처럼 해결한다.
 
 ---
 
-## 7. 프로젝트 패키지 구조(확인된 범위)
+## 7. 프로젝트 패키지 구조
 
 ```text
 src/main/java/study/querydsl
